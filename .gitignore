@@ -1,0 +1,15 @@
+# Kubernetes kubeconfig files
+kubeconfigs/
+*.kubeconfig
+*.kubeconfig.yaml
+
+# Local files
+.env
+.env.*
+*.log
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
