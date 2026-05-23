@@ -56,8 +56,9 @@ kubectl config use-context kind-mgmt
 helm repo add projectsveltos https://projectsveltos.github.io/helm-charts | Out-Null
 helm repo update
 
-$helmStatus = helm status projectsveltos -n projectsveltos 2>$null
-if ($LASTEXITCODE -ne 0) {
+$releaseExists = helm list -n projectsveltos -q | Select-String -Pattern "^projectsveltos$"
+
+if (-not $releaseExists) {
     helm install projectsveltos projectsveltos/projectsveltos `
         -n projectsveltos `
         --create-namespace `
@@ -115,17 +116,22 @@ Info "Applying workload ClusterProfiles"
 kubectl apply -f .\sveltos\clusters\podinfo-dev.yaml
 kubectl apply -f .\sveltos\clusters\podinfo-staging.yaml
 
-Info "Installing ArgoCD through Sveltos"
-kubectl apply -f .\sveltos\mgmt\clusterprofile-argocd.yaml
-
 Info "Waiting for ArgoCD namespace and pods"
 $timeout = (Get-Date).AddMinutes(5)
+
 while ((Get-Date) -lt $timeout) {
-    kubectl get namespace argocd 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) {
+    $namespace = kubectl get namespace argocd --ignore-not-found -o name
+
+    if ($namespace -eq "namespace/argocd") {
         break
     }
+
     Start-Sleep -Seconds 5
+}
+
+$namespace = kubectl get namespace argocd --ignore-not-found -o name
+if ($namespace -ne "namespace/argocd") {
+    throw "ArgoCD namespace was not created within the timeout."
 }
 
 kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
