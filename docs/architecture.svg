@@ -1,0 +1,67 @@
+<svg width="1200" height="780" viewBox="0 0 1200 780" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-opacity="0.18"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#334155"/>
+    </marker>
+    <style>
+      .title { font: 700 31px Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 400 16px Arial, sans-serif; fill: #475569; }
+      .box-title { font: 700 18px Arial, sans-serif; fill: #0f172a; }
+      .box-text { font: 400 14px Arial, sans-serif; fill: #334155; }
+      .small { font: 400 12px Arial, sans-serif; fill: #64748b; }
+      .label { font: 700 13px Arial, sans-serif; fill: #334155; }
+      .mono { font: 600 13px Consolas, monospace; fill: #1e293b; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="780" fill="#f8fafc"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Local Kind Platform Engineering Demo</text>
+  <text x="600" y="76" text-anchor="middle" class="subtitle">A local multi-cluster GitOps lab using kind, Sveltos and ArgoCD</text>
+
+  <rect x="425" y="112" width="350" height="88" rx="18" fill="#ffffff" stroke="#cbd5e1" filter="url(#shadow)"/>
+  <text x="600" y="143" text-anchor="middle" class="box-title">GitHub Repository</text>
+  <text x="600" y="168" text-anchor="middle" class="mono">sveltos/clusters/*.yaml</text>
+  <text x="600" y="187" text-anchor="middle" class="small">The source of truth for GitOps</text>
+
+  <line x1="600" y1="200" x2="600" y2="258" stroke="#334155" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="630" y="232" class="label">ArgoCD watches Git</text>
+
+  <rect x="65" y="258" width="1070" height="430" rx="28" fill="#eef6ff" stroke="#93c5fd" stroke-width="2"/>
+  <text x="102" y="292" class="box-title">Docker Desktop / Local Machine</text>
+  <text x="102" y="316" class="small">Everything runs locally. No cloud account is required.</text>
+
+  <rect x="315" y="335" width="570" height="178" rx="22" fill="#ffffff" stroke="#60a5fa" stroke-width="2" filter="url(#shadow)"/>
+  <text x="600" y="368" text-anchor="middle" class="box-title">kind-mgmt cluster</text>
+  <text x="600" y="392" text-anchor="middle" class="box-text">Management cluster</text>
+
+  <rect x="365" y="415" width="210" height="62" rx="14" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="470" y="441" text-anchor="middle" class="box-title">ArgoCD</text>
+  <text x="470" y="462" text-anchor="middle" class="small">syncs Git to mgmt</text>
+
+  <rect x="625" y="415" width="210" height="62" rx="14" fill="#f0fdf4" stroke="#86efac"/>
+  <text x="730" y="441" text-anchor="middle" class="box-title">Sveltos</text>
+  <text x="730" y="462" text-anchor="middle" class="small">deploys by cluster labels</text>
+
+  <line x1="575" y1="446" x2="625" y2="446" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="130" y="560" width="390" height="98" rx="20" fill="#ffffff" stroke="#22c55e" stroke-width="2" filter="url(#shadow)"/>
+  <text x="325" y="591" text-anchor="middle" class="box-title">kind-dev cluster</text>
+  <text x="325" y="615" text-anchor="middle" class="mono">label: env=dev</text>
+  <text x="325" y="638" text-anchor="middle" class="box-text">podinfo DEV version</text>
+
+  <rect x="680" y="560" width="390" height="98" rx="20" fill="#ffffff" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+  <text x="875" y="591" text-anchor="middle" class="box-title">kind-staging cluster</text>
+  <text x="875" y="615" text-anchor="middle" class="mono">label: env=staging</text>
+  <text x="875" y="638" text-anchor="middle" class="box-text">podinfo STAGING version</text>
+
+  <line x1="690" y1="477" x2="400" y2="560" stroke="#334155" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="760" y1="477" x2="820" y2="560" stroke="#334155" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="420" y="530" class="label">Sveltos deploys</text>
+  <text x="820" y="530" class="label">Sveltos deploys</text>
+
+  <rect x="160" y="715" width="880" height="34" rx="17" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="600" y="737" text-anchor="middle" class="small">Git push → ArgoCD sync → Sveltos ClusterProfiles update → dev/staging workloads updated</text>
+</svg>

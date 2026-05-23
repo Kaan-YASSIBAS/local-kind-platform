@@ -1,10 +1,34 @@
 # Local Kind Platform Engineering Demo
 
-A fully local multi-cluster Kubernetes GitOps platform demo for Windows using **kind**, **Sveltos** and **ArgoCD**.
+A beginner-friendly, fully local **multi-cluster Kubernetes GitOps platform demo** using **kind**, **Sveltos** and **ArgoCD**.
 
-This project simulates a platform engineering workflow with one management cluster and two workload clusters. Everything runs locally on Docker Desktop, so no cloud account or cloud cost is required.
+This project runs completely on your own computer with Docker Desktop. You do **not** need AWS, Azure, GCP or any cloud account.
+
+The goal is to learn how a platform engineering workflow works:
+
+```text
+Git push
+  -> ArgoCD syncs changes from GitHub
+  -> Sveltos reads the ClusterProfiles
+  -> Sveltos deploys the application to dev and staging clusters
+```
+
+## Why I Built This
+
+I wanted a Windows-friendly local lab for learning:
+
+- multi-cluster Kubernetes
+- GitOps
+- ArgoCD
+- Sveltos
+- label-based cluster targeting
+- platform engineering basics
+
+The original idea is similar to local multi-cluster demos using vCluster/vind, but this version uses **kind** because it works more reliably on Windows with Docker Desktop.
 
 ## Architecture
+
+![Local Kind Platform Architecture](docs/architecture.svg)
 
 ```text
 GitHub Repository
@@ -23,35 +47,50 @@ dev cluster                                  staging cluster
 podinfo DEV                                 podinfo STAGING
 ```
 
+## Simple Explanation
+
+This project creates three local Kubernetes clusters:
+
+| Cluster | Purpose |
+| --- | --- |
+| `mgmt` | Management cluster. Runs Sveltos and ArgoCD. |
+| `dev` | Workload cluster for the development environment. |
+| `staging` | Workload cluster for the staging environment. |
+
+The `mgmt` cluster controls the other clusters.
+
+ArgoCD watches this GitHub repository.
+
+Sveltos deploys applications to the correct cluster based on labels:
+
+```text
+env=dev      -> deploy DEV version
+env=staging  -> deploy STAGING version
+```
+
 ## What This Project Demonstrates
 
-- Running multiple local Kubernetes clusters with kind
-- Using a dedicated management cluster
-- Registering workload clusters into Sveltos
-- Managing deployments across clusters with Sveltos ClusterProfiles
-- Targeting clusters with labels such as `env=dev` and `env=staging`
-- Installing ArgoCD on the management cluster
-- Creating a GitOps loop where ArgoCD syncs Sveltos manifests from Git
-- Deploying the same application with different configurations per environment
-- Running the full setup locally on Windows with Docker Desktop
-
-## Cluster Layout
-
-| Cluster | Role | Description |
-| --- | --- | --- |
-| `mgmt` | Management cluster | Runs Sveltos and ArgoCD |
-| `dev` | Workload cluster | Receives the development version of `podinfo` |
-| `staging` | Workload cluster | Receives the staging version of `podinfo` |
+- Creating multiple local Kubernetes clusters with kind
+- Using one Kubernetes cluster as a management cluster
+- Registering external clusters into Sveltos
+- Deploying applications across multiple clusters with Sveltos
+- Selecting clusters by labels
+- Installing ArgoCD with Sveltos
+- Creating a GitOps loop with GitHub and ArgoCD
+- Running everything locally without cloud cost
+- Automating the setup with PowerShell and Bash scripts
 
 ## Tools Used
 
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - [kind](https://kind.sigs.k8s.io/)
-- [Kubernetes](https://kubernetes.io/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [Helm](https://helm.sh/)
 - [Sveltos](https://projectsveltos.github.io/sveltos/)
 - [ArgoCD](https://argo-cd.readthedocs.io/)
-- [Helm](https://helm.sh/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [Git](https://git-scm.com/)
 - PowerShell
+- Bash
 
 ## Repository Structure
 
@@ -75,6 +114,13 @@ local-kind-platform/
 │       └── podinfo-staging.yaml
 │
 ├── scripts/
+│   ├── setup.ps1
+│   ├── destroy.ps1
+│   ├── setup.sh
+│   └── destroy.sh
+│
+├── docs/
+│   └── architecture.svg
 │
 ├── .gitignore
 ├── LICENSE
@@ -83,28 +129,158 @@ local-kind-platform/
 
 ## Prerequisites
 
-Make sure the following tools are installed on Windows:
+Install these tools before starting.
 
-```powershell
-docker --version
-kubectl version --client
-kind version
-helm version
-git --version
-```
-
-Required tools:
+### Required for Windows
 
 - Docker Desktop
+- Git
 - kubectl
 - kind
 - Helm
-- Git
 - PowerShell
 
-## 1. Create the Local Clusters
+You can check whether they are installed with:
 
-Create three local Kubernetes clusters with kind:
+```powershell
+docker --version
+git --version
+kubectl version --client
+kind version
+helm version
+```
+
+If one of these commands is not recognized, install that tool first.
+
+## Important: GitHub Repository Setup
+
+ArgoCD runs inside Kubernetes. It cannot read files directly from your local computer.
+
+For the GitOps part to work, this project must be pushed to a GitHub repository.
+
+### 1. Create a GitHub repository
+
+Create a new GitHub repository, for example:
+
+```text
+local-kind-platform
+```
+
+A public repository is easier for this demo. If you use a private repository, you will need to configure ArgoCD repository credentials.
+
+### 2. Push this project to GitHub
+
+From the project root:
+
+```powershell
+git init
+git add .
+git commit -m "Initial local kind platform demo"
+
+git remote add origin https://github.com/<your-username>/local-kind-platform.git
+git branch -M main
+git push -u origin main
+```
+
+Replace `<your-username>` with your own GitHub username.
+
+Example:
+
+```powershell
+git remote add origin https://github.com/Kaan-YASSIBAS/local-kind-platform.git
+```
+
+### 3. Update the ArgoCD repo URL
+
+Open this file:
+
+```text
+sveltos/mgmt/argocd-app-sveltos.yaml
+```
+
+Change the `repoURL` field to your own GitHub repository:
+
+```yaml
+source:
+  repoURL: https://github.com/<your-username>/local-kind-platform.git
+  targetRevision: HEAD
+  path: sveltos/clusters
+```
+
+Then commit and push the change:
+
+```powershell
+git add sveltos/mgmt/argocd-app-sveltos.yaml
+git commit -m "Configure ArgoCD repository URL"
+git push
+```
+
+Without this step, ArgoCD will not know which repository to watch.
+
+## Quick Start
+
+The easiest way is to use the setup script.
+
+### Windows PowerShell
+
+Run PowerShell from the project root.
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\setup.ps1
+```
+
+This command only changes the script execution policy for the current PowerShell window. It does not permanently change your system policy.
+
+### macOS / Linux
+
+Run from the project root.
+
+```bash
+chmod +x scripts/setup.sh scripts/destroy.sh
+./scripts/setup.sh
+```
+
+## What the Setup Script Does
+
+The setup script does these steps automatically:
+
+1. Creates three kind clusters:
+   - `mgmt`
+   - `dev`
+   - `staging`
+
+2. Installs Sveltos on the `mgmt` cluster.
+
+3. Labels the `mgmt` cluster:
+
+```text
+type=mgmt
+```
+
+4. Generates kubeconfig files for `dev` and `staging`.
+
+5. Rewrites the kubeconfig server addresses so Sveltos can reach the clusters from inside Docker.
+
+6. Creates Kubernetes Secrets that store the kubeconfigs.
+
+7. Registers `dev` and `staging` as Sveltos managed clusters.
+
+8. Applies Sveltos ClusterProfiles for Podinfo.
+
+9. Installs ArgoCD through Sveltos.
+
+10. Applies the ArgoCD Application that watches:
+
+```text
+sveltos/clusters
+```
+
+## Manual Setup
+
+This section explains the same process manually.
+
+## 1. Create Local kind Clusters
 
 ```powershell
 kind create cluster --config .\clusters\mgmt.yaml
@@ -112,7 +288,7 @@ kind create cluster --config .\clusters\dev.yaml
 kind create cluster --config .\clusters\staging.yaml
 ```
 
-Verify the clusters:
+Verify:
 
 ```powershell
 kind get clusters
@@ -126,7 +302,7 @@ mgmt
 staging
 ```
 
-Check the Docker containers:
+Check Docker containers:
 
 ```powershell
 docker ps
@@ -164,7 +340,7 @@ helm install projectsveltos projectsveltos/projectsveltos `
   --version 1.10.0
 ```
 
-Verify the installation:
+Verify:
 
 ```powershell
 kubectl get pods -n projectsveltos
@@ -172,7 +348,9 @@ kubectl get pods -n projectsveltos
 
 ## 3. Label the Management Cluster
 
-Sveltos selects clusters by labels. The management cluster is labeled as `type=mgmt` so ArgoCD can be installed only there.
+Sveltos uses labels to decide where to deploy things.
+
+Label the management cluster:
 
 ```powershell
 kubectl label sveltoscluster mgmt -n mgmt type=mgmt --overwrite
@@ -186,18 +364,29 @@ kubectl get sveltoscluster -A --show-labels
 
 ## 4. Register Dev and Staging Clusters in Sveltos
 
-Sveltos needs kubeconfig credentials to manage the `dev` and `staging` clusters.
-
-Generate host kubeconfigs:
+Generate kubeconfigs:
 
 ```powershell
 kind get kubeconfig --name dev > .\kubeconfigs\dev-host.yaml
 kind get kubeconfig --name staging > .\kubeconfigs\staging-host.yaml
 ```
 
-The default kubeconfigs use `127.0.0.1`, which works from Windows but not from inside the management cluster.
+The generated kubeconfigs usually point to:
 
-Replace the server addresses with Docker network reachable addresses:
+```text
+https://127.0.0.1:<port>
+```
+
+That works from your Windows host, but not from inside the `mgmt` cluster.
+
+Sveltos runs inside the `mgmt` cluster, so it needs Docker-network-reachable addresses:
+
+```text
+https://dev-control-plane:6443
+https://staging-control-plane:6443
+```
+
+Create Sveltos-compatible kubeconfigs:
 
 ```powershell
 (Get-Content .\kubeconfigs\dev-host.yaml) `
@@ -216,7 +405,7 @@ kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
 kubectl create namespace staging --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-Create kubeconfig secrets:
+Create kubeconfig Secrets:
 
 ```powershell
 kubectl create secret generic dev-sveltos-kubeconfig `
@@ -260,67 +449,62 @@ kubectl apply -f .\sveltos\clusters\podinfo-dev.yaml
 kubectl apply -f .\sveltos\clusters\podinfo-staging.yaml
 ```
 
-Verify the ClusterProfiles:
+Verify:
 
 ```powershell
 kubectl get clusterprofile
-```
-
-Check Sveltos deployment summaries:
-
-```powershell
 kubectl get clustersummary -A
 ```
 
-## 6. Verify the Dev Deployment
+## 6. Verify the Dev Application
 
-Switch to the dev cluster:
+Switch to dev:
 
 ```powershell
 kubectl config use-context kind-dev
 ```
 
-Check the deployed app:
+Check Podinfo:
 
 ```powershell
 kubectl get pods -n podinfo
 kubectl get svc -n podinfo
 ```
 
-Port-forward the service:
+Open it locally:
 
 ```powershell
 kubectl port-forward svc/podinfo 9898:9898 -n podinfo
 ```
 
-Open:
+Then open:
 
 ```text
 http://localhost:9898
 ```
 
-## 7. Verify the Staging Deployment
+## 7. Verify the Staging Application
 
-Switch to the staging cluster:
+Switch to staging:
 
 ```powershell
 kubectl config use-context kind-staging
 ```
 
-Check the deployed app:
+Check Podinfo:
 
 ```powershell
 kubectl get pods -n podinfo
 kubectl get svc -n podinfo
 ```
 
-Port-forward the service:
+Open it locally:
 
 ```powershell
 kubectl port-forward svc/podinfo 9899:9898 -n podinfo
 ```
 
-Open:
+Then open:
 
 ```text
 http://localhost:9899
@@ -328,7 +512,7 @@ http://localhost:9899
 
 ## 8. Install ArgoCD Through Sveltos
 
-Switch back to the management cluster:
+Switch back to mgmt:
 
 ```powershell
 kubectl config use-context kind-mgmt
@@ -340,7 +524,7 @@ Apply the ArgoCD ClusterProfile:
 kubectl apply -f .\sveltos\mgmt\clusterprofile-argocd.yaml
 ```
 
-Verify ArgoCD pods:
+Verify:
 
 ```powershell
 kubectl get pods -n argocd
@@ -353,13 +537,13 @@ $passwordBase64 = kubectl get secret argocd-initial-admin-secret -n argocd -o js
 [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($passwordBase64))
 ```
 
-Port-forward ArgoCD:
+Open ArgoCD:
 
 ```powershell
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
-Open:
+Then open:
 
 ```text
 https://localhost:8080
@@ -374,8 +558,6 @@ password: <decoded-password>
 
 ## 9. Enable the GitOps Loop
 
-ArgoCD tracks the `sveltos/clusters` directory in this repository.
-
 Apply the ArgoCD Application:
 
 ```powershell
@@ -388,35 +570,23 @@ Verify:
 kubectl get applications -n argocd
 ```
 
-From this point on, changes pushed to the `sveltos/clusters` directory are synced by ArgoCD to the management cluster. Sveltos then deploys those changes to the matching workload clusters.
-
-## GitOps Flow
+Expected result:
 
 ```text
-Developer pushes change to GitHub
-        |
-        v
-ArgoCD syncs sveltos/clusters manifests
-        |
-        v
-ClusterProfiles are updated on mgmt cluster
-        |
-        v
-Sveltos detects the changes
-        |
-        v
-dev and staging clusters are updated
+sveltos-clusters   Synced   Healthy
 ```
 
-## Example GitOps Test
+## GitOps Test
 
-Update the message in:
+Now test the full GitOps loop.
+
+Open:
 
 ```text
 sveltos/clusters/podinfo-dev.yaml
 ```
 
-For example:
+Change the message:
 
 ```yaml
 message: "DEV v2 - synced by ArgoCD and deployed by Sveltos"
@@ -425,45 +595,119 @@ message: "DEV v2 - synced by ArgoCD and deployed by Sveltos"
 Commit and push:
 
 ```powershell
-git add .
+git add sveltos/clusters/podinfo-dev.yaml
 git commit -m "Update dev podinfo message"
 git push
 ```
 
-ArgoCD syncs the change, and Sveltos applies it to the `dev` cluster.
+ArgoCD will sync the change from GitHub.
+
+Sveltos will apply it to the `dev` cluster.
+
+Check the application again:
+
+```powershell
+kubectl config use-context kind-dev
+kubectl port-forward svc/podinfo 9898:9898 -n podinfo
+```
+
+Open:
+
+```text
+http://localhost:9898
+```
+
+You should see the updated DEV message.
+
+## Useful Commands
+
+Check all Sveltos clusters:
+
+```powershell
+kubectl config use-context kind-mgmt
+kubectl get sveltoscluster -A --show-labels
+```
+
+Check Sveltos deployment summaries:
+
+```powershell
+kubectl get clustersummary -A
+```
+
+Check ArgoCD application status:
+
+```powershell
+kubectl get applications -n argocd
+```
+
+Check dev Podinfo:
+
+```powershell
+kubectl config use-context kind-dev
+kubectl get pods -n podinfo
+```
+
+Check staging Podinfo:
+
+```powershell
+kubectl config use-context kind-staging
+kubectl get pods -n podinfo
+```
 
 ## Important Notes
 
-### Localhost vs Docker Network
+### Why Does the kubeconfig Need to Be Changed?
 
-A kubeconfig generated by kind usually contains a server address like this:
+The kubeconfig generated by kind uses a local address:
 
 ```text
 https://127.0.0.1:<port>
 ```
 
-This works from the Windows host, but it does not work from inside the management cluster. For Sveltos, the server address must be reachable from inside the Docker network:
+This is correct for your computer, but wrong for Sveltos.
+
+Sveltos runs inside Kubernetes, so `127.0.0.1` would mean the Sveltos pod itself, not the dev or staging cluster.
+
+That is why the kubeconfigs are changed to:
 
 ```text
 https://dev-control-plane:6443
 https://staging-control-plane:6443
 ```
 
-This is one of the most important parts of the project.
+### Do Not Commit kubeconfigs
 
-### Kubeconfigs Should Not Be Committed
+The `kubeconfigs/` directory contains local cluster credentials. It should not be committed.
 
-The `kubeconfigs/` directory contains local cluster credentials and should not be committed to Git.
-
-Make sure `.gitignore` contains:
+Your `.gitignore` should include:
 
 ```gitignore
 kubeconfigs/
 ```
 
+If kubeconfigs were already committed, remove them from Git tracking:
+
+```powershell
+git rm -r --cached kubeconfigs
+git commit -m "Remove local kubeconfigs from repository"
+git push
+```
+
 ## Cleanup
 
-Delete the local kind clusters:
+### Windows
+
+```powershell
+.\scripts\destroy.ps1
+```
+
+### macOS / Linux
+
+```bash
+./scripts/destroy.sh
+```
+
+Manual cleanup:
 
 ```powershell
 kind delete cluster --name mgmt
@@ -479,7 +723,7 @@ kind get clusters
 
 ## Learning Goals
 
-This project was built to understand:
+This project is designed to teach:
 
 - How local Kubernetes clusters can simulate real multi-cluster environments
 - How a management cluster controls workload clusters
@@ -487,6 +731,7 @@ This project was built to understand:
 - How ArgoCD enables GitOps synchronization
 - Why kubeconfig server addresses matter in multi-cluster setups
 - How GitOps and platform engineering workflows fit together
+- How to package a local DevOps lab with setup and cleanup scripts
 
 ## License
 
