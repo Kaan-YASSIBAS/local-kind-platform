@@ -1,0 +1,9 @@
+apiVersion: lib.projectsveltos.io/v1beta1
+kind: SveltosCluster
+metadata:
+  name: staging
+  namespace: staging
+  labels:
+    env: staging
+spec:
+  kubeconfigName: staging-sveltos-kubeconfig

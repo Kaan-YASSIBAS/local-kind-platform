@@ -1,0 +1,9 @@
+apiVersion: lib.projectsveltos.io/v1beta1
+kind: SveltosCluster
+metadata:
+  name: dev
+  namespace: dev
+  labels:
+    env: dev
+spec:
+  kubeconfigName: dev-sveltos-kubeconfig
