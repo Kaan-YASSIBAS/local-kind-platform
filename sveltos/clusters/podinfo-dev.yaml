@@ -19,4 +19,4 @@ spec:
         replicaCount: 2
         ui:
           color: "#34A853"
-          message: "DEV from Windows kind platform"
+          message: "DEV v2 - synced by ArgoCD and deployed by Sveltos"
